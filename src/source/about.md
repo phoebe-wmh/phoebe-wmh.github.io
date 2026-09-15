@@ -1,49 +1,133 @@
 ---
-title: "关于"
+title: "About"
 category: About
-date: 2026-01-01 00:00:00
-tags: [关于]
-summary: "LLM Wiki 站点介绍。"
+date: 2026-04-15 00:00:00
+tags: [LLM, Wiki, Knowledge Graph, AI, Claude]
+summary: "LLM Wiki — Multimodal Knowledge Graph Skill running inside Claude Code"
 ---
 
-# 关于 LLM Wiki
+> LLM writes and maintains the wiki; humans read and ask questions.
 
 ![LLM Wiki](/images/llm-wiki.svg)
 
-> LLM Wiki 是一个以「LLM 撰写与维护、人类阅读与提问」为核心的零后端文件驱动知识站点模板。
+`llm-wiki-skill` is a Skill running inside Claude Code that ingests raw documents of any format (PDF, DOCX, PPTX, XLSX, Markdown, images) into a structured Wiki and automatically builds an interactive knowledge graph (`graph.html`).
 
-## 特点
+It implements the knowledge management philosophy proposed by Karpathy: **knowledge is synthesized at ingest time, not query time**. Every time a new document is added, the LLM automatically extracts key points, establishes cross-references, flags contradictions, and updates the synthesis summary — making the knowledge base compound-grow with each ingest.
 
-- **零后端**：文章以 Markdown + YAML frontmatter 存放，无需数据库、CMS 或服务端渲染管道
-- **全功能**：全文搜索、标签云、分类、多语言（简中/繁中/英文/日文/韩文）、暗色模式、KaTeX 数学公式、Mermaid 图表、代码高亮、RSS 导出
-- **文件驱动**：新增一篇文章 = 在 `src/public/` 下放一个 `.md` 文件并推送，CI 自动构建发布
-- **部署**：push 到 `main` 分支后，GitHub Actions 自动执行构建并发布到 GitHub Pages
+The core difference from RAG: RAG dumps raw documents into a vector store and assembles answers on-the-fly at query time; `llm-wiki` compiles knowledge into durable wiki pages at ingest time, so queries read already-synthesized conclusions.
 
-## 使用方式
-
-### 添加文章
-
-在 `src/public/` 目录下新建一个 Markdown 文件，包含以下 frontmatter：
-
-```markdown
----
-title: "文章标题"
-category: 分类名
-date: 2026-01-01 00:00:00
-tags: [标签1, 标签2]
-summary: "列表页显示的摘要。"
 ---
 
-正文内容……
+## Directory Structure
+
+```
+<wiki-root>/
+  raw/                  # Raw documents (never modified)
+    <topic>/            # Organized by topic, one-level subdirectories
+  wiki/
+    index.md            # Table of contents for all pages (partitioned by topic)
+    overview.md         # Living synthesis across all sources
+    log.md              # Append-only operation log
+    sources/            # Summary page for each raw document
+    entities/           # People / companies / projects / products
+    concepts/           # Concepts / frameworks / methodologies
+    syntheses/          # Archived query answers
+    archive/            # Archived outdated pages
+  graph/
+    graph.json          # Nodes + edges data
+    graph.html          # Self-contained visualization based on vis.js
 ```
 
-### 修改站点信息
+---
 
-- 站点名称 / 简介 / 社交链接：编辑 `src/config/config.json`
-- 本「关于」页面：编辑 `src/source/about.md`
-- 界面文案（多语言）：编辑 `src/i18n/index.ts`
-- 主题颜色：编辑 `src/index.css` 中的 `@theme` 与 `[data-theme="dark"]` 变量
+## Command Reference
 
-## 技术栈
+- `wiki-config workspace <path>` — Set the wiki workspace path
+- `wiki-config show` — View current config and directory status
+- `wiki-input <path> [--topic <slug>]` — Ingest any file path, auto-archives to `raw/<topic>/`
+- `wiki-ingest <file>` — Ingest a file already in `raw/`
+- `wiki-query: <question>` — Query the knowledge base, synthesize answer
+- `wiki-lint` — Check for orphan pages, broken links, contradictions
+- `wiki-graph` — Build the interactive knowledge graph (`graph.html`)
 
-React 19 · Vite 6 · Tailwind CSS 4 · TypeScript 5 · KaTeX · Mermaid.js · i18next
+Recommended for daily use: `wiki-input` — accepts local or remote paths, automatically copies to `raw/<topic>/` before ingesting. No manual management of the `raw/` directory needed.
+
+---
+
+## Workflow
+
+### Ingest
+
+When ingesting a document, the LLM executes in sequence:
+
+1. Multimodal content extraction (PDF/DOCX/PPTX/XLSX/images → Markdown)
+2. Write `wiki/sources/<slug>.md` (summary, key points, key quotes)
+3. Update `wiki/index.md` and `wiki/overview.md`
+4. Create or update `wiki/entities/` and `wiki/concepts/` pages
+5. Flag contradictions with existing content
+6. Append operation log to `wiki/log.md`
+
+### Query
+
+Reads `wiki/index.md` to identify relevant pages, synthesizes an answer with inline `[[PageName]]` references. Optionally archives the answer as `wiki/syntheses/<slug>.md`.
+
+### Knowledge Graph
+
+Extracts explicit wikilinks (`EXTRACTED`) and AI-inferred semantic associations (`INFERRED`, confidence ≥ 0.5) between pages, generating a zero-dependency self-contained `graph.html` with node-type coloring and community grouping.
+
+---
+
+## Supported Formats
+
+- `.md` `.txt` — Direct read
+- `.pdf` — pdfplumber (text + tables)
+- `.docx` — python-docx (body + headings + tables)
+- `.pptx` — python-pptx (titles + body + notes)
+- `.xlsx` `.csv` — pandas (converted to Markdown tables)
+- `.png` `.jpg` `.jpeg` `.webp` `.gif` `.bmp` — Claude vision (multimodal)
+
+---
+
+## Multimodal Support
+
+`llm-wiki` uses Claude's native multimodal capability to understand image content — not just OCR, but full semantic comprehension of diagrams, charts, and screenshots.
+
+Pass any image file directly to `wiki-input` or `wiki-ingest`. Claude reads the image and converts its content to structured Markdown before the standard Ingest workflow runs:
+
+```bash
+wiki-input ~/screenshots/architecture-diagram.png --topic system-design
+wiki-input ~/photos/whiteboard-session.jpg --topic meetings
+```
+
+What Claude extracts from images:
+
+- Charts & graphs — data series, axis labels, trends, and numerical values
+- Diagrams & flowcharts — nodes, edges, relationships, and flow direction
+- Screenshots — UI structure, visible text, and layout context
+- Handwritten notes / whiteboards — transcribed text and drawn structures
+- Tables in images — reconstructed as Markdown tables
+- Mixed content — documents photographed or scanned with both text and figures
+
+---
+
+## Quick Start
+
+```bash
+# 1. Set the wiki workspace
+wiki-config workspace ~/my-wiki
+
+# 2. Ingest the first document
+wiki-input ~/Downloads/paper.pdf --topic papers
+
+# 3. Query
+wiki-query: What is the core contribution of this paper?
+
+# 4. Build the knowledge graph
+wiki-graph
+```
+
+---
+
+## References
+
+- [llmrix/llm-wiki-skill](https://github.com/llmrix/llm-wiki-skill) — Source repository

@@ -1,114 +1,72 @@
 ---
 title: "Getting Started"
 category: Guide
-date: 2026-01-01 00:00:00
-tags: [Guide, Getting Started]
-summary: "Learn how to use this LLM wiki template — add articles, customize the site, and deploy with GitHub Actions."
+date: 2026-04-15 00:00:00
+tags: [Guide, Setup, React, Vite]
+summary: "A quick guide to setting up and customizing your llmrix-page site."
 ---
 
-# Getting Started
+llmrix-page is a minimalist wiki site for large language model knowledge, built with React, Vite, and Tailwind CSS. Articles are written in Markdown and loaded automatically — no database required.
 
-Welcome to **LLM Wiki** — a clean, zero-backend, file-driven wiki interface built with React 19, Vite 6, Tailwind CSS 4 and TypeScript 5.
+## Features
 
-## ✨ Features
+- **Markdown-driven content** — articles live as `.md` files with YAML frontmatter; no database or CMS needed
+- **Category & tag browsing** — sidebar navigation with category grouping and tag filtering
+- **Full-text search** — instant client-side search across all article titles, summaries, and tags
+- **Math rendering** — inline and block LaTeX via KaTeX (remark-math + rehype-katex)
+- **Diagram support** — Mermaid.js diagrams rendered directly in articles
+- **Syntax highlighting** — code blocks with language-aware highlighting via react-syntax-highlighter
+- **Light / Dark theme** — toggle with persistent preference stored in localStorage
+- **i18n** — UI localized in zh-CN, zh-TW, en, ja, ko via i18next
+- **Animated transitions** — page and list animations powered by Framer Motion
+- **About page** — driven by `src/source/about.md`, fully editable in Markdown
+- **Responsive layout** — sidebar collapses on mobile, readable on any screen size
 
-- 📝 **File-driven content**: drop Markdown files with YAML frontmatter into `src/public/` and the site updates automatically
-- 🔍 **Full-text search**: search across all articles instantly
-- 🏷️ **Tag cloud & categories**: organize articles the way you like
-- 🌍 **i18n**: Simplified Chinese, Traditional Chinese, English, Japanese, Korean
-- 🌙 **Dark mode**: automatic + manual theme switching
-- 📐 **KaTeX math**: render LaTeX formulas natively
-- 📊 **Mermaid diagrams**: render flowcharts, sequence diagrams and more
-- 💻 **Code highlighting**: syntax highlighting for dozens of languages
-- 📡 **RSS export**: generate RSS feed on the fly
+## Stack
 
-## 🚀 Quick Start
+- React 19 + Vite 6
+- Tailwind CSS 4 + @tailwindcss/typography
+- react-markdown, remark-gfm, remark-math, rehype-katex
+- Mermaid.js for diagrams
+- react-syntax-highlighter for code blocks
+- i18next (zh-CN, zh-TW, en, ja, ko)
+- Framer Motion
+
+## Installation
 
 ```bash
 npm install
-npm run dev    # start dev server at http://localhost:3000
-npm run build  # production build → dist/
+npm run dev       # http://localhost:3000
+npm run build     # output to dist/
 ```
 
-## 📁 Project Structure
+## Adding Articles
 
-```
-.
-├── public/               # static assets (images, favicon)
-├── src/
-│   ├── components/       # React components
-│   ├── config/           # site configuration (config.json)
-│   ├── i18n/             # internationalization
-│   ├── lib/              # utility functions
-│   ├── services/         # types and services
-│   ├── source/           # about page content
-│   ├── public/           # markdown articles (file-driven content)
-│   ├── App.tsx
-│   ├── index.css
-│   └── main.tsx
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## 📝 Adding an Article
-
-Create a new Markdown file in `src/public/` with YAML frontmatter:
+Place a `.md` file in `src/public/` with frontmatter:
 
 ```markdown
 ---
-title: "My First Article"
+title: "Article Title"
 category: Guide
-date: 2026-01-01 00:00:00
-tags: [Guide, Tutorial]
-summary: "A short description shown in the list."
+date: 2026-04-15 00:00:00
+tags: [LLM, AI]
+summary: "Short description shown in the list."
 ---
 
-Your content here...
+Content here...
 ```
 
-The article will appear on the homepage automatically. Categories and tags are derived from frontmatter.
+The About page is driven by `src/source/about.md`.
 
-## ⚙️ Customizing the Site
+## Configuration
 
-Edit `src/config/config.json`:
+Edit `src/config/config.json` to update the site title, profile name, bio, social links, and theme defaults.
 
 ```json
 {
-  "profile": {
-    "name": "LLM Wiki",
-    "bio": "A comprehensive knowledge base for large language models and AI.",
-    "buyMeCoffeeUrl": "https://www.buymeacoffee.com/llmrix"
-  },
-  "site": {
-    "title": "LLM Wiki",
-    "subtitle": "Large Language Model Knowledge Base",
-    "copyright": "© 2026 LLM Wiki. All Rights Reserved."
-  },
-  "social": {
-    "github": "https://github.com/llmrix",
-    "website": "https://llmrix.github.io/llmrix-page/"
-  },
-  "ui": {
-    "postsPerPage": 10,
-    "defaultTheme": "light"
-  }
+  "profile": { "name": "LLM Wiki", "bio": "..." },
+  "site": { "title": "LLM Wiki", "subtitle": "..." },
+  "social": { "github": "...", "website": "..." },
+  "ui": { "postsPerPage": 10, "defaultTheme": "light" }
 }
 ```
-
-## 🔄 Deployment
-
-This site deploys automatically via GitHub Actions. Any push to `main` triggers the workflow:
-
-```yaml
-on:
-  push:
-    branches: ["main"]
-```
-
-Build → Upload artifact → Deploy to GitHub Pages.
-
-## 📜 License
-
-MIT License.

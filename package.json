@@ -8,9 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
-    "deploy": "bash ./scripts/deploy.sh",
-    "deploy:oversea": "bash ./scripts/deploy-oversea.sh"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
