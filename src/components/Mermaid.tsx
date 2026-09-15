@@ -1,56 +1,57 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
 interface MermaidProps {
   chart: string;
 }
 
-let initialized = false;
-
-function initMermaid() {
-  if (initialized) return;
-  initialized = true;
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'loose',
-    themeVariables: {
-      fontFamily: 'Noto Sans SC, sans-serif',
-    },
-  });
-}
-
-const Mermaid = ({ chart }: MermaidProps) => {
+export default function Mermaid({ chart }: MermaidProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ref.current) return;
-    initMermaid();
+    const isDark = document.documentElement.classList.contains('dark');
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: isDark ? 'dark' : 'default',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif',
+      themeVariables: {
+        primaryColor: isDark ? '#333' : '#f9f9f9',
+        primaryTextColor: isDark ? '#eee' : '#333',
+        primaryBorderColor: isDark ? '#444' : '#eee',
+        lineColor: isDark ? '#888' : '#333',
+        secondaryColor: isDark ? '#222' : '#fff',
+        tertiaryColor: isDark ? '#222' : '#fff',
+      }
+    });
 
-    let mounted = true;
-    mermaid
-      .render(`mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, chart)
-      .then(({ svg }) => {
-        if (!mounted || !ref.current) return;
-        ref.current.innerHTML = svg;
-      })
-      .catch((err) => {
-        console.error('Mermaid render failed:', err);
-        if (!mounted) return;
-        setError('Failed to render diagram');
-      });
+    if (ref.current && chart) {
+      ref.current.removeAttribute('data-processed');
+      mermaid.contentLoaded();
+      
+      // For dynamic updates, we need to use render
+      const renderChart = async () => {
+        try {
+          const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(id, chart);
+          if (ref.current) {
+            ref.current.innerHTML = svg;
+          }
+        } catch (error) {
+          console.error('Mermaid render error:', error);
+          if (ref.current) {
+            ref.current.innerHTML = '<div class="text-red-500 text-xs p-2">Mermaid diagram error</div>';
+          }
+        }
+      };
 
-    return () => {
-      mounted = false;
-    };
+      renderChart();
+    }
   }, [chart]);
 
-  if (error) {
-    return <div className="text-red-500 text-sm py-2">{error}</div>;
-  }
-
-  return <div ref={ref} className="mermaid-container my-4" />;
-};
-
-export default Mermaid;
+  return (
+    <div className="mermaid-container flex justify-center my-8 bg-surface p-4 rounded-lg border border-border overflow-x-auto">
+      <div ref={ref} className="mermaid" />
+    </div>
+  );
+}

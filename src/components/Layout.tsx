@@ -1,208 +1,48 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Sun, Moon, Home, Tag, Search, User, Settings, Rss } from 'lucide-react';
+import { ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ArchiveEntry } from '../services/types';
-import Sidebar from './Sidebar';
-import PostList from './PostList';
-import PostDetail from './PostDetail';
-import SearchView from './Search';
-import TagsView from './Tags';
-import SettingsView from './Settings';
-import AboutView from './About';
-import CategoriesView from './Categories';
-import config from '../config/config.json';
 
 interface LayoutProps {
-  entries: ArchiveEntry[];
-  categories: string[];
-  allTags: string[];
-  name: string;
-  bio: string;
-  title: string;
-  subtitle: string;
-  aboutContent: string;
+  children: React.ReactNode;
+  sidebar: React.ReactNode;
 }
 
-type View = 'list' | 'search' | 'tags' | 'settings' | 'about' | 'categories' | 'post';
-
-const POSTS_PER_PAGE = config.ui.postsPerPage || 10;
-
-export default function Layout({
-  entries,
-  categories,
-  allTags,
-  name,
-  bio,
-  title,
-  subtitle,
-  aboutContent,
-}: LayoutProps) {
+export default function Layout({ children, sidebar }: LayoutProps) {
   const { t } = useTranslation();
-  const [activeView, setActiveView] = useState<View>('list');
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPost, setSelectedPost] = useState<ArchiveEntry | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('theme') as 'light' | 'dark') || config.ui.defaultTheme || 'light';
-  });
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
-
-  const sortedEntries = [...entries].sort((a, b) => {
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-
-  const sortedCategories = [...categories].sort((a, b) => {
-    const countA = entries.filter(e => e.category === a && e.id !== 'about').length;
-    const countB = entries.filter(e => e.category === b && e.id !== 'about').length;
-    if (countA !== countB) return countB - countA;
-    return a.localeCompare(b);
-  });
-
-  const handleCategoryClick = (category: string) => {
-    if (category === 'Tags') {
-      setActiveView('tags');
-    } else if (category === 'Search') {
-      setActiveView('search');
-    } else if (category === 'About') {
-      setActiveView('about');
-    } else if (category === 'Settings') {
-      setActiveView('settings');
-    } else if (category === 'Categories') {
-      setActiveView('categories');
-    } else {
-      setActiveCategory(category);
-      setActiveView('list');
-      setVisibleCount(POSTS_PER_PAGE);
-    }
-    setSidebarOpen(false);
-  };
-
-  const handleTagClick = (tag: string) => {
-    setActiveCategory('All');
-    setActiveView('search');
-    setSearchQuery(tag);
-    setSidebarOpen(false);
-  };
-
-  const handlePostClick = (id: string) => {
-    const post = entries.find(e => e.id === id);
-    if (post) {
-      setSelectedPost(post);
-      setActiveView('post');
-    }
-    setSidebarOpen(false);
-  };
-
-  const handleBack = () => {
-    setActiveView('list');
-    setSelectedPost(null);
-  };
-
-  const filteredEntries = entries.filter(e => {
-    if (e.id === 'about') return false;
-    const matchesCategory = activeCategory === 'All' || e.category === activeCategory;
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = !query ||
-      e.title.toLowerCase().includes(query) ||
-      e.content.toLowerCase().includes(query) ||
-      (e.tags || []).some(tag => tag.toLowerCase().includes(query));
-    return matchesCategory && matchesSearch;
-  });
-
-  const renderContent = () => {
-    switch (activeView) {
-      case 'post':
-        return selectedPost ? (
-          <PostDetail
-            entry={selectedPost}
-            previousEntry={sortedEntries.find(e => e.id !== 'about' && e.id !== selectedPost.id)}
-            onNavigate={(id) => handlePostClick(id)}
-            onBack={handleBack}
-            onTagClick={handleTagClick}
-            buyMeCoffeeUrl={config.profile.buyMeCoffeeUrl}
-          />
-        ) : null;
-      case 'search':
-        return (
-          <SearchView
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filteredEntries={filteredEntries}
-            onPostClick={handlePostClick}
-          />
-        );
-      case 'tags':
-        return <TagsView allTags={allTags} onTagClick={handleTagClick} />;
-      case 'settings':
-        return <SettingsView theme={theme} toggleTheme={toggleTheme} />;
-      case 'about':
-        return <AboutView content={aboutContent} />;
-      case 'categories':
-        return (
-          <CategoriesView
-            categories={sortedCategories}
-            entries={entries}
-            activeCategory={activeCategory}
-            onCategoryClick={handleCategoryClick}
-            onPostClick={handlePostClick}
-          />
-        );
-      default:
-        return (
-          <PostList
-            entries={filteredEntries}
-            activeCategory={activeCategory}
-            visibleCount={visibleCount}
-            onLoadMore={() => setVisibleCount(prev => prev + POSTS_PER_PAGE)}
-            onPostClick={handlePostClick}
-          />
-        );
-    }
-  };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen">
-      <Sidebar
-        activeCategory={activeView === 'list' ? activeCategory : activeView}
-        onCategoryClick={handleCategoryClick}
-        entries={entries}
-        categories={categories}
-        allTags={allTags}
-        name={name}
-        bio={bio}
-        title={title}
-        subtitle={subtitle}
-      />
-      <div className="content-area">
-        <div className="header-bar">
-          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <button onClick={toggleTheme} className="theme-toggle-btn">
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-        </div>
+    <div className="min-h-screen bg-background text-text-main selection:bg-accent selection:text-surface border-t-[3px] border-t-brand-bg">
+      <div className="layout-wrapper">
+        {sidebar}
         <main className="main-content">
-          <AnimatePresence mode="wait">
-            <motion.div key={activeView}>
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
+          {children}
         </main>
       </div>
+
+      <footer className="pt-20 pb-10 text-center text-[12px] text-text-muted tracking-widest uppercase">
+        <div>{t('footer')}</div>
+      </footer>
+
+      {/* Back to Top */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className={`fixed right-12 bottom-12 p-3 bg-surface border border-border rounded-full shadow-sm text-text-muted hover:text-accent hover:border-accent transition-all duration-300 z-50 ${
+          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        aria-label="Back to top"
+      >
+        <ChevronUp size={20} />
+      </button>
     </div>
   );
 }
